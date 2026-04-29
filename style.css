@@ -1,0 +1,135 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "微软雅黑", sans-serif;
+}
+body {
+    background: linear-gradient(135deg, #ffe8f0, #fce4ec);
+    padding: 20px;
+    /* 移动端边缘优化：兼容 iPhone 底部横条安全区 */
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 28px;
+    padding: 30px;
+    box-shadow: 0 6px 18px rgba(233, 153, 186, 0.25);
+}
+
+/* ==================== */
+/* 首页样式（已修复这里） */
+/* ==================== */
+#home-page {
+    background: url('background.png') center top / 80% no-repeat;
+    min-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px 10px;
+}
+#home-page .text-wrap {
+    margin-top: 65%; /* 把文字往下推，让出顶部图片的空间 */
+    width: 100%;
+}
+#home-page .start-btn {
+    margin-top: auto; /* 让按钮自动顶到底部 */
+    margin-bottom: 20px;
+}
+#home-page h1 {font-size: 42px;color: #e87ea1;margin-bottom: 10px;letter-spacing: 2px;}
+#home-page h3 {font-size: 20px;color: #b86b8c;margin-bottom: 15px;}
+.slogan {color: #c288a0;margin-bottom: 35px;font-size: 15px;}
+.start-btn {background: linear-gradient(135deg, #f89bb8, #e87ea1);color: #fff;border: none;padding: 14px 40px;border-radius: 30px;font-size: 16px;cursor: pointer;transition: 0.3s ease;}
+.start-btn:hover {opacity: 0.9;transform: translateY(-2px);}
+
+
+/* 弹窗样式 */
+.modal-overlay {display: none;position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0,0,0,0.5);justify-content: center;align-items: center;z-index: 1000;}
+.modal-content {background: #fff;border-radius: 16px;padding: 30px;max-width: 450px;width: 90%;text-align: center;}
+.modal-icon {font-size: 40px;margin-bottom: 10px;}
+.modal-title {font-size: 20px;color: #333;margin-bottom: 10px;}
+.modal-subtitle {font-size: 14px;color: #666;margin-bottom: 20px;line-height: 1.6;}
+.modal-info-box {background: #f5f5f5;border-radius: 10px;padding: 15px;margin-bottom: 20px;text-align: left;}
+.info-item {font-size: 14px;color: #555;margin: 8px 0;}
+.modal-agree {margin-bottom: 25px;text-align: left;}
+.agree-label {display: flex;align-items: center;font-size: 14px;color: #555;cursor: pointer;}
+.agree-label input {margin-right: 10px;}
+.modal-buttons {display: flex;gap: 15px;}
+.modal-btn {flex: 1;padding: 12px;border: none;border-radius: 8px;font-size: 15px;cursor: pointer;}
+.modal-btn-secondary {background: #eee;color: #666;}
+.modal-btn-primary {background: #f89bb8;color: #fff;}
+.modal-btn-primary:disabled {background: #fcc8d8;cursor: not-allowed;}
+
+/* 答题页与进度条 */
+#quiz-page {display: none;}
+.progress-bar {height: 8px;background: #ffe8f0;border-radius: 4px;margin-bottom: 20px;overflow: hidden;}
+.progress-fill {height: 100%;background: linear-gradient(135deg, #f89bb8, #e87ea1);width: 0;transition: width 0.3s ease-out;}
+.q-item {background: #fff5f8;padding: 20px;border-radius: 18px;}
+.q-item p {color: #884e68;margin-bottom: 20px;line-height: 1.6;font-size: 16px;}
+.options {display: flex;flex-direction: column;gap: 12px;}
+
+/* 优化1：移动端物理触感与防粘连 */
+.option-btn {
+    background: #fff;
+    border: 1px solid #ffe8f0;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: left;
+    font-size: 15px;
+    color: #b0708e;
+    cursor: pointer;
+    transition: all 0.15s ease-out; /* 缩短动画让反馈更清脆 */
+    -webkit-tap-highlight-color: transparent; /* 移除安卓默认蓝框 */
+    touch-action: manipulation; /* 优化点击响应 */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+@media (hover: hover) {
+    .option-btn:hover { background: #ffe8f0; }
+}
+.option-btn:active {
+    transform: scale(0.96); /* 按钮下凹反馈 */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    background: #fcecf1;
+}
+.option-btn.selected {background: #f89bb8;color: #fff;border-color: #e87ea1;}
+
+/* 导航按钮 */
+.nav-buttons {display: flex;justify-content: space-between;margin-top: 20px;}
+.prev-btn, .next-btn {background: #f4b8cc;color: #fff;border: none;padding: 10px 20px;border-radius: 12px;cursor: pointer;font-size: 15px;}
+.prev-btn {background: #eec5d3;}
+.next-btn {display: none;} /* 启用自动跳转，隐藏此按钮 */
+
+/* 优化2：切题滑动动画 */
+@keyframes fadeSlideIn {
+    0% { opacity: 0; transform: translateX(15px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+.fade-in { animation: fadeSlideIn 0.35s ease forwards; }
+
+/* 优化3：加载页面样式 */
+#loading-page {display: none; flex-direction: column; align-items: center; justify-content: center; padding: 50px 0;}
+.spinner {
+    border: 4px solid #ffe8f0; border-top: 4px solid #f89bb8;
+    border-radius: 50%; width: 45px; height: 45px;
+    animation: spin 1s linear infinite; margin-bottom: 20px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+#loading-text {color: #b86b8c; font-size: 16px;}
+
+/* 结果页样式 */
+#result-page {display: none;text-align: center;padding: 20px 0;}
+#result-page h2 {color: #c0688c;margin-bottom: 10px;}
+.res-card {background: #fff0f6;padding: 25px;border-radius: 22px;margin: 25px 0;}
+.avatar {width: 140px;height: 140px;border-radius: 50%;margin-bottom: 15px;object-fit: cover;box-shadow: 0 4px 10px rgba(233, 153, 186, 0.2);}
+#res-title {color: #e87ea1;margin-bottom: 15px;font-size: 22px;}
+#res-desc {color: #995c78;line-height: 1.8;}
+.collapse-section {margin: 30px 0;text-align: left;}
+.collapse-item {background: #fff5f8;padding: 14px 18px;border-radius: 16px;margin: 10px 0;display: flex;justify-content: space-between;align-items: center;cursor: pointer;color: #b86b8c;font-weight: 500; -webkit-tap-highlight-color: transparent;}
+.arrow {font-size: 14px;transition: 0.3s;}
+.collapse-content {display: none;background: #ffffff;padding: 18px;border-radius: 0 0 16px 16px;color: #884e68;line-height: 1.8;margin-top: -8px;margin-bottom: 10px;}
+.reset-btn {background: #f4b8cc;color: #fff;border: none;padding: 12px 35px;border-radius: 30px;cursor: pointer; transition: 0.2s;}
+.reset-btn:active {transform: scale(0.95);}

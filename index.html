@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MITI 大学生精神内耗人格测试</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 针对维度提示新增的样式 */
+        .q-dimension-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        /* 维度颜色区分 */
+        .tag-social { background-color: #e3f2fd; color: #1976d2; }   /* 蓝色系 */
+        .tag-action { background-color: #f3e5f5; color: #7b1fa2; }   /* 紫色系 */
+        .tag-emotion { background-color: #fff3e0; color: #f57c00; }  /* 橙色系 */
+
+        /* 题目文本规整 */
+        #q-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        /* 页面切换平滑过渡动画 */
+        #quiz-page, #loading-page, #result-page {
+            animation: fadeInPage 0.4s ease-out forwards;
+        }
+        @keyframes fadeInPage {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 优化折叠面板内的文字排版 */
+        .collapse-content p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        .collapse-content p:last-child {
+            margin-bottom: 0;
+        }
+        /* 改善指南专属列表样式 */
+        .growth-item {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px dashed #ffe8f0;
+        }
+        .growth-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .growth-title {
+            color: #d15c8e;
+            font-weight: bold;
+            margin-bottom: 4px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="home-page">
+            <div class="text-wrap">
+                <h1>MITI 测试</h1>
+                <h3>当代大学生专属</h3>
+                <p class="slogan">解锁你的专属内耗剧本，与焦虑好好和解</p>
+            </div>
+            <button class="start-btn" onclick="showPrivacyModal()">开始测试</button>
+        </div>
+
+        <div id="privacy-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-icon">🔒</div>
+                <h2 class="modal-title">开始之前，说一件小事</h2>
+                <p class="modal-subtitle">了解我们如何通过维度分析您的内耗状况。</p>
+                <div class="modal-info-box">
+                    <div class="info-item">✅ 维度包含：社交敏感、行动评价、情绪感知</div>
+                    <div class="info-item">📊 结果将基于您的加权数据进行深度计算</div>
+                </div>
+                <div class="modal-agree">
+                    <label class="agree-label">
+                        <input type="checkbox" id="agree-checkbox"> 我已了解并同意隐私政策
+                    </label>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-secondary" onclick="closePrivacyModal()">先不了</button>
+                    <button class="modal-btn modal-btn-primary" id="agree-btn" disabled onclick="agreeAndStart()">开始分析 →</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="quiz-page">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            <div class="q-item" id="current-question">
+                <div id="q-dimension" class="q-dimension-tag"></div>
+                <p id="q-text"></p>
+                <div class="options" id="q-options"></div>
+            </div>
+            <div class="nav-buttons">
+                <button class="prev-btn" id="prev-btn" onclick="prevQuestion()">上一题</button>
+            </div>
+        </div>
+
+        <div id="loading-page">
+            <div class="spinner"></div>
+            <p id="loading-text">正在交叉比对各维度数据...</p>
+        </div>
+
+        <div id="result-page">
+            <h2>你的MITI内耗人格</h2>
+            <div class="res-card">
+                <img id="avatar-img" src="" alt="人格头像" class="avatar">
+                <h3 id="res-title"></h3>
+                <p id="res-desc"></p>
+            </div>
+            <div class="collapse-section" id="res-details">
+                <div class="collapse-item" onclick="toggleCollapse('analysis')">
+                    <span>🔍 人格深度解析</span>
+                    <span class="arrow" id="arrow-analysis">▼</span>
+                </div>
+                <div class="collapse-content" id="analysis"></div>
+                
+                <div class="collapse-item" onclick="toggleCollapse('source')">
+                    <span>⚠️ 内耗根源分析</span>
+                    <span class="arrow" id="arrow-source">▼</span>
+                </div>
+                <div class="collapse-content" id="source"></div>
+                
+                <div class="collapse-item" onclick="toggleCollapse('growth')">
+                    <span>🌱 内耗改善指南</span>
+                    <span class="arrow" id="arrow-growth">▼</span>
+                </div>
+                <div class="collapse-content" id="growth"></div>
+            </div>
+            <button class="reset-btn" onclick="resetPage()">重新测试</button>
+        </div>
+    </div>
+
+    <script>
+        // ----------------- 数据层 -----------------
+        const questions = [
+            { dim: "social", dimName: "社交敏感", text: "别人晚回消息，你会怎么做？", options: [{text: "疯狂脑补对方讨厌我，反复刷新聊天框",value: 1}, {text: "有点不安，但会先做别的事转移注意力",value: 2}, {text: "完全不在意，晚回是很正常的事",value: 3}] },
+            { dim: "social", dimName: "社交敏感", text: "发朋友圈后，你会反复刷新看有没有人互动吗？", options: [{text: "会，没人点赞就后悔发了，甚至想删掉",value: 1}, {text: "偶尔会看，但不会太在意",value: 2}, {text: "从不刷新，发完就忘",value: 3}] },
+            { dim: "social", dimName: "社交敏感", text: "当众发言结束后，你会反复回想自己有没有说错话吗？", options: [{text: "会，尴尬复盘很久，甚至睡不着",value: 1}, {text: "会想一下，但很快就过去了",value: 2}, {text: "完全不会，说完就翻篇",value: 3}] },
+            { dim: "action", dimName: "行动评价", text: "看到同学内卷，你会感到焦虑吗？", options: [{text: "会，瞬间觉得自己落后，开始自我否定",value: 1}, {text: "有点慌，但会按自己的节奏来",value: 2}, {text: "完全不慌，每个人节奏不同",value: 3}] },
+            { dim: "social", dimName: "社交敏感", text: "小组作业里，你敢直接提出反对意见吗？", options: [{text: "不敢，怕得罪人，习惯性迁就别人",value: 1}, {text: "会委婉地提，但不敢直接反对",value: 2}, {text: "敢，有想法就会直接说",value: 3}] },
+            { dim: "emotion", dimName: "情绪感知", text: "睡前，大脑会自动回放当天的尴尬瞬间吗？", options: [{text: "会，越想越尴尬，甚至睡不着",value: 1}, {text: "偶尔会想，但很快就会睡着",value: 2}, {text: "不会，躺下就能放空大脑",value: 3}] },
+            { dim: "social", dimName: "社交敏感", text: "别人找你帮忙，你很难拒绝吗？", options: [{text: "很难，哪怕自己不方便也会答应",value: 1}, {text: "会纠结，但最后还是会答应",value: 2}, {text: "会直接拒绝，不会勉强自己",value: 3}] },
+            { dim: "action", dimName: "行动评价", text: "计划没完成，你会强烈自责吗？", options: [{text: "会，觉得自己很没用，陷入自我否定",value: 1}, {text: "会有点难过，但会调整计划",value: 2}, {text: "不会，计划赶不上变化",value: 3}] },
+            { dim: "social", dimName: "社交敏感", text: "别人一句玩笑话，你会当真并反复琢磨吗？", options: [{text: "会，甚至怀疑对方是不是讨厌我",value: 1}, {text: "会有点在意，但不会想太久",value: 2}, {text: "不会，知道只是玩笑",value: 3}] },
+            { dim: "emotion", dimName: "情绪感知", text: "明明什么也没做，却总感觉身心俱疲？", options: [{text: "会，每天都很累，提不起劲",value: 1}, {text: "偶尔会，可能是没休息好",value: 2}, {text: "不会，没事做的时候很放松",value: 3}] },
+            { dim: "action", dimName: "行动评价", text: "做选择时，你会极度纠结内耗吗？", options: [{text: "会，纠结半天，最后干脆摆烂不选",value: 1}, {text: "会纠结一会儿，但很快能做决定",value: 2}, {text: "不会，果断选择，不后悔",value: 3}] },
+            { dim: "action", dimName: "行动评价", text: "表面佛系摆烂，私底下会嫌弃自己不够努力吗？", options: [{text: "会，一边摆烂一边愧疚，十分矛盾",value: 1}, {text: "偶尔会，但很快就想开了",value: 2}, {text: "不会，摆烂也是一种合理休息",value: 3}] },
+            { dim: "social", dimName: "社交敏感", text: "你非常在意自己在别人眼中的评价吗？", options: [{text: "非常在意，别人看法会影响我很久",value: 1}, {text: "有点在意，但不会太放在心上",value: 2}, {text: "完全不在意，专注自我就好",value: 3}] },
+            { dim: "action", dimName: "行动评价", text: "事情还没开始，就提前害怕失败不敢行动？", options: [{text: "会，怕做不好干脆直接放弃",value: 1}, {text: "有点怕，但还是会试着去做",value: 2}, {text: "不会，大胆尝试，接受失误",value: 3}] },
+            { dim: "emotion", dimName: "情绪感知", text: "容易被他人的负面情绪感染、心情变差？", options: [{text: "会，跟着难过，很久缓不过来",value: 1}, {text: "会有点难过，但很快能调整",value: 2}, {text: "不会，共情但不被情绪绑架",value: 3}] },
+            { dim: "emotion", dimName: "情绪感知", text: "遇到压力，习惯独自硬扛、不愿麻烦别人？", options: [{text: "自己扛着，害怕麻烦任何人",value: 1}, {text: "实在扛不住了才会寻求帮助",value: 2}, {text: "会主动求助，不独自内耗硬撑",value: 3}] },
+            { dim: "action", dimName: "行动评价", text: "总习惯性和他人对比，产生自卑焦虑？", options: [{text: "会，总觉得别人更优秀，否定自己",value: 1}, {text: "偶尔羡慕，但不会贬低自己",value: 2}, {text: "不会，接纳自己的成长节奏",value: 3}] },
+            { dim: "emotion", dimName: "情绪感知", text: "小事就容易扰乱心情，一整天情绪低落？", options: [{text: "会，容易烦躁、emo、提不起劲",value: 1}, {text: "稍有影响，但短时间可恢复",value: 2}, {text: "不会，小事无法左右我的情绪",value: 3}] }
+        ];
+
+        // ----------------- 深度扩写的人格文案 -----------------
+        const typeList = [
+            { 
+                title: "思绪过载空想家", 
+                desc: "你的大脑是一台永不停歇的“反刍机”，习惯反复咀嚼过去、脑补未来，陷入“越想越不敢动”的死循环。", 
+                avatar: "img1.png", 
+                analysis: "<p>你是典型的「精神内耗重灾区」。你拥有极其敏锐的感知力和丰富的想象力，但这反而成了你的枷锁。</p><p>在日常生活中，你对自己的言行极度敏感，总在事后反复复盘“那句话是不是说得不太合适”；对他人的反应你也会过度解读，对方一个标点符号的变化，都能让你脑补出一整部被讨厌的大戏。你往往在还没采取任何实际行动前，就已经在脑海中把最坏的结果预演了无数遍，在“想太多”中耗尽了所有的力气。</p>", 
+                source: "<p>这种内耗的根源，在于<strong>对自我价值的确认过度依赖外界反馈</strong>，以及<strong>对失控的极度恐惧</strong>。</p><p>你习惯用别人的眼光来定义自己，极度害怕被否定，因此试图通过不断的脑补和复盘来“修正”自己，企图掌控别人对你的看法，却忽略了其实你永远无法控制他人的想法。</p>", 
+                growth: "<div class='growth-item'><span class='growth-title'>1. 设立“忧虑结界”强行熔断</span>当你开始反复纠结时，给自己设定一个“15分钟烦恼时间”。时间一到，就像关掉电视一样强行打断反刍，去做一件需要高度专注的具体事情。</div><div class='growth-item'><span class='growth-title'>2. 把想法“外化”在纸上</span>你的大脑内存经常被没用的思绪占满。请尝试把所有担忧写在备忘录里，你会发现，落在纸上的大多是虚无缥缈的假设，而非事实。</div><div class='growth-item'><span class='growth-title'>3. 寻找“最小阻力行动”</span>想得越多越不敢做。别想着一步到位，试着把任务拆解到极其微小，比如“只看一页书”、“只写一行字”，用微小行动的确定性打破空想的闭环。</div>" 
+            },
+            { 
+                title: "高敏情绪接收器", 
+                desc: "你天生就是一块“情绪海绵”，总能轻易捕捉到他人的情绪波动，却分不清“共情”和“内耗”的边界。", 
+                avatar: "img2.png", 
+                analysis: "<p>你拥有极强的共情能力，像雷达一样能轻易感知身边人的开心与难过。但这份温柔的能力却成了压垮你的重担。</p><p>看到朋友不开心，你会比对方更难受，甚至会暗自揣测“是不是我哪里做得不好惹他生气了？”；在人际交往中，你总是习惯性地优先满足他人的需求，即使自己受委屈也不敢开口拒绝。别人的负能量就像倒进你心里的污水，久而久之，你的内心早已超载。</p>", 
+                source: "<p>这种内耗的根源，在于你<strong>模糊的「情绪边界」</strong>以及<strong>隐性的讨好型人格倾向</strong>。</p><p>你错把“他人的课题”当成了自己的责任。潜意识里，你认为“如果不帮忙、如果别人不开心，那就是我没有价值”，你用牺牲自我情绪的方式，来换取微弱的安全感。</p>", 
+                growth: "<div class='growth-item'><span class='growth-title'>1. 建立「心理防火墙」进行课题分离</span>在心里默念三遍：“别人的情绪是别人的课题，我不对他们的喜怒哀乐负责”。不要傲慢地认为你能拯救所有人的坏心情。</div><div class='growth-item'><span class='growth-title'>2. 练习“温和但坚定”地拒绝</span>拒绝不需要长篇大论的道歉。试着从最小的事情开始说“不”，比如“我现在不太方便哦”，你会发现天根本不会塌下来。</div><div class='growth-item'><span class='growth-title'>3. 设定专属的“情绪排毒时间”</span>每天留出半小时，独处、听歌、冥想，切断与他人的社交连接，把吸满别人情绪的海绵拧干，好好抱抱自己。</div>" 
+            },
+            { 
+                title: "极致完美主义者", 
+                desc: "你被“必须做到最好”的执念绑架了，要么做到100分，要么干脆不做，被高标准逼得寸步难行。", 
+                avatar: "img3.png", 
+                analysis: "<p>你是一个对自己有着近乎严苛要求的“狠人”。在你眼里，事情只有“完美”和“失败”两种状态，绝对不允许存在瑕疵。</p><p>无论是写一篇小论文，还是发一条普通的朋友圈，你都要反复修改、斟酌字眼。为了避免做不好丢人，你甚至会产生严重的拖延症——“既然现在状态不好做不到满分，那不如先不开始了”。你活在永远觉得自己“还不够好”的紧绷感中。</p>", 
+                source: "<p>这种内耗的根源，是你<strong>「非黑即白」的绝对化认知</strong>，以及将<strong>「个人价值与做事结果」深度绑定</strong>的错误公式。</p><p>你误以为“如果这件事我做砸了，就代表我这个人是个毫无价值的废物”。你无法接纳自己作为普通人的灰色地带。</p>", 
+                growth: "<div class='growth-item'><span class='growth-title'>1. 拥抱“先完成，再完美”的心态</span>允许自己写出“狗屎一样”的初稿。告诉自己，哪怕只有60分也比停留在0分好，跑起来才有调整方向的可能。</div><div class='growth-item'><span class='growth-title'>2. 记录你的“小失误日记”</span>每次犯了小错（比如拼写错误、说错一句话），记录下来，并观察后果。你会慢慢脱敏，发现这点瑕疵根本摧毁不了你的人生。</div><div class='growth-item'><span class='growth-title'>3. 切割任务，降低启动门槛</span>把庞大的完美目标切碎。今天不要求写完完美报告，只要求“新建一个Word文档并写上标题”，降低期待，快速启动。</div>" 
+            },
+            { 
+                title: "同辈攀比焦虑者", 
+                desc: "你被内卷的洪流推着走，习惯用别人的节奏定义自己的人生，在和同龄人的反复对比中陷入自我怀疑。", 
+                avatar: "img4.png", 
+                analysis: "<p>你的眼睛总是长在别人的跑道上。室友拿了国奖、朋友圈里的老同学进了大厂、别人脱单晒了旅游照……这些外界的“高光时刻”都会化作无形的刺，精准地扎中你的焦虑神经。</p><p>你很害怕自己成为“被落下”的那一个，于是盲目地跟着大流去考研、考证、实习，却很少停下来问问自己：“我到底喜欢什么？”你的人生像是一个永无止境的追赶游戏，越追越感到深深的疲惫与自卑。</p>", 
+                source: "<p>这种内耗的根源，是你<strong>缺乏稳定的「内在评价体系」</strong>。</p><p>你不知道怎么衡量自己是否优秀，只能依赖外界设定的标准（分数、金钱、地位）。你把同龄人当成了假想敌，用他们的上限来惩罚自己的日常。</p>", 
+                growth: "<div class='growth-item'><span class='growth-title'>1. 实施阶段性“信息节食”</span>卸载或屏蔽那些容易引起你疯狂焦虑的社交平台账号。你看到的只是别人精心包装的“橱窗”，别拿自己的后台去比别人的前台。</div><div class='growth-item'><span class='growth-title'>2. 切换坐标系，转向“纵向对比”</span>把你目光从别人身上收回来。只问自己一个问题：“今天的我，比上个月的我进步了一点点吗？”只要答案是肯定的，你就是在赢。</div><div class='growth-item'><span class='growth-title'>3. 寻找并笃定你的“主线任务”</span>花时间挖掘自己真正热爱和擅长的事。当你在自己的旷野里悠然种树时，自然不会在意别人在拥挤的赛道上跑得多快。</div>" 
+            },
+            { 
+                title: "隐性摆烂内耗者", 
+                desc: "你表面上佛系躺平，说着“就这样吧，无所谓”，但内心却充满了不甘和自责，一边逃避努力，一边又嫌弃自己。", 
+                avatar: "img5.png", 
+                analysis: "<p>你是典型的「表里不一型」内耗者。在同学眼里，你可能是个看淡一切的乐天派，整天喊着要当咸鱼。但只有你自己知道，每当夜深人静刷着手机时，那种“我又荒废了一天”的负罪感有多么令人窒息。</p><p>你总是间歇性踌躇满志，持续性混吃等死。你不是真的想摆烂，你只是太害怕“万一我拼尽全力，最后还是个失败者”的残酷现实。</p>", 
+                source: "<p>这种内耗的根源，是一种隐蔽的<strong>「习得性无助」</strong>和<strong>自我设障的心理防御机制</strong>。</p><p>你潜意识里觉得“只要我不曾真正努力过，我就永远不用面对真正的失败”。你用“摆烂”作为挡箭牌，小心翼翼地维护着自己那脆弱的自尊心。</p>", 
+                growth: "<div class='growth-item'><span class='growth-title'>1. 摘下面具，接纳“防御性休息”</span>别再一边玩手机一边骂自己了。当你想休息时，就心安理得地彻底休息，告诉自己“我正在合法充电”，把休息和自责剥离开来。</div><div class='growth-item'><span class='growth-title'>2. 采用“五分钟起步法”</span>既然害怕大目标，那就告诉自己：“我今天只背5分钟单词，5分钟一到立刻不干了”。往往当你一旦开始，惯性会推着你走得更远。</div><div class='growth-item'><span class='growth-title'>3. 卸下“必须惊艳所有人”的包袱</span>承认自己是个普通人，允许自己有一段笨拙的成长期。默默努力，不要在开始前给自己加戏，关注做事情本身，而不是结果。</div>" 
+            }
+        ];
+        
+        const hideType = { 
+            title: "隐藏 · 内耗通透绝缘体", 
+            desc: "你拥有稳定而松弛的内核，能清醒地活在当下，不纠结过去、不焦虑未来、不盲从他人。", 
+            avatar: "hide.png", 
+            analysis: "<p>恭喜你！你是人群中极其罕见的「清醒通透者」，真正掌握了精神减负的密码。</p><p>你拥有极其强大的内核与定力，仿佛自带一层透明的防护罩。你不会因为别人的一句无心之言而深夜失眠，也不会因为周遭疯狂内卷的环境而乱了自己的阵脚。你能坦然接纳自己的普通与不完美，也能带着悲悯和界限感去看待他人的不同。你不困于不可改变的过去，不忧惧尚未发生的未来，只专注体验属于当下的这一刻。</p>", 
+            source: "<p>这种理想状态的根源，在于你已经建立起了<strong>坚如磐石的「内在价值体系」</strong>。</p><p>你的自我认同是由内而外散发的，不需要依靠他人的点赞、外界的世俗标准来证明自己“值得被爱”。你深谙课题分离的智慧，清楚知道什么是自己的事，什么是老天的事。</p>", 
+            growth: "<div class='growth-item'><span class='growth-title'>1. 享受你的旷野，保持松弛节拍</span>继续保持你的自在生活哲学，去听风、去看海、去专注当下的小确幸，不必理会外界的杂音。</div><div class='growth-item'><span class='growth-title'>2. 守住清醒的边界感</span>在保持温和共情的同时，继续不被他人的负面情绪所绑架。你是自己精神世界的最佳守门员。</div><div class='growth-item'><span class='growth-title'>3. 散发你的磁场能量</span>你的稳定和松弛，本身就是一种极具感染力的光芒。试着用你的平和去影响身边深陷内耗泥沼的朋友，帮助他们看见另一种生活的可能。</div>" 
+        };
+
+        let currentQ = 0;
+        let answers = [];
+
+        // ----------------- 体验优化 -----------------
+        function preloadImages() {
+            const images = ["img1.png", "img2.png", "img3.png", "img4.png", "img5.png", "hide.png"];
+            images.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+        preloadImages(); 
+
+        // ----------------- 页面与交互逻辑 -----------------
+        function showPrivacyModal() { document.getElementById("privacy-modal").style.display = "flex"; }
+        function closePrivacyModal() { document.getElementById("privacy-modal").style.display = "none"; }
+        function agreeAndStart() { closePrivacyModal(); startQuiz(); }
+        
+        document.getElementById("agree-checkbox").addEventListener("change", function() {
+            document.getElementById("agree-btn").disabled = !this.checked;
+        });
+
+        function startQuiz() {
+            document.getElementById("home-page").style.display = "none";
+            document.getElementById("quiz-page").style.display = "block";
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = questions[currentQ];
+            const qItem = document.getElementById("current-question");
+            
+            qItem.classList.remove("fade-in");
+            void qItem.offsetWidth;
+            qItem.classList.add("fade-in");
+
+            const dimTag = document.getElementById("q-dimension");
+            dimTag.innerText = q.dimName;
+            dimTag.className = `q-dimension-tag tag-${q.dim}`;
+
+            document.getElementById("q-text").innerText = `(${currentQ + 1}/${questions.length}) ${q.text}`;
+
+            const optsDiv = document.getElementById("q-options");
+            optsDiv.innerHTML = "";
+            q.options.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "option-btn";
+                btn.innerText = opt.text;
+                btn.onclick = () => selectOption(btn, opt.value);
+                optsDiv.appendChild(btn);
+            });
+
+            document.getElementById("progress").style.width = `${(currentQ / questions.length) * 100}%`;
+            document.getElementById("prev-btn").style.display = currentQ === 0 ? "none" : "inline-block";
+        }
+
+        function selectOption(btn, value) {
+            if (navigator.vibrate) navigator.vibrate(30);
+            answers[currentQ] = value;
+            
+            if (currentQ === questions.length - 1) {
+                processResult();
+            } else {
+                currentQ++;
+                setTimeout(showQuestion, 200);
+            }
+        }
+
+        function prevQuestion() { if (currentQ > 0) { currentQ--; showQuestion(); } }
+
+        function processResult() {
+            document.getElementById("quiz-page").style.display = "none";
+            document.getElementById("loading-page").style.display = "flex";
+            setTimeout(() => {
+                calcResult();
+                document.getElementById("loading-page").style.display = "none";
+                document.getElementById("result-page").style.display = "block";
+            }, 1200);
+        }
+
+        // ----------------- 核心算法重构：权重积分制 -----------------
+        function calcResult() {
+            let score = answers.reduce((a, b) => a + b, 0);
+            
+            if (score >= 45) {
+                renderResult(hideType);
+                return;
+            }
+
+            let typeScores = [0, 0, 0, 0, 0]; 
+
+            answers.forEach((ans, index) => {
+                if (ans === 1) {
+                    const q = questions[index];
+                    
+                    if (q.dim === "social") { typeScores[0] += 1; typeScores[1] += 1; }
+                    if (q.dim === "emotion") { typeScores[1] += 2; }
+                    if (q.dim === "action") { typeScores[2] += 1; }
+                    
+                    if (index === 16) typeScores[3] += 5; 
+                    if (index === 11) typeScores[4] += 5; 
+                    if (index === 10) typeScores[4] += 3; 
+                    if (index === 7)  typeScores[2] += 3; 
+                }
+            });
+
+            let maxIndex = 0;
+            let maxScore = typeScores[0];
+            for(let i = 1; i < typeScores.length; i++) {
+                if(typeScores[i] > maxScore) {
+                    maxScore = typeScores[i];
+                    maxIndex = i;
+                }
+            }
+
+            renderResult(typeList[maxIndex]);
+        }
+
+        // 优化4：修改为 innerHTML 以渲染深度扩写的富文本
+        function renderResult(res) {
+            document.getElementById("res-title").innerText = res.title;
+            document.getElementById("res-desc").innerText = res.desc;
+            document.getElementById("avatar-img").src = res.avatar;
+            // 使用 innerHTML 让我们的换行、加粗和列表生效
+            document.getElementById("analysis").innerHTML = res.analysis;
+            document.getElementById("source").innerHTML = res.source;
+            document.getElementById("growth").innerHTML = res.growth;
+        }
+
+        function toggleCollapse(id) {
+            const panels = ['analysis', 'source', 'growth'];
+            panels.forEach(panelId => {
+                const content = document.getElementById(panelId);
+                const arrow = document.getElementById(`arrow-${panelId}`);
+                
+                if (panelId === id) {
+                    const isClosed = content.style.display !== "block";
+                    content.style.display = isClosed ? "block" : "none";
+                    arrow.textContent = isClosed ? "▲" : "▼";
+                } else {
+                    content.style.display = "none";
+                    arrow.textContent = "▼";
+                }
+            });
+        }
+
+        function resetPage() { location.reload(); }
+    </script>
+</body>
+</html>
